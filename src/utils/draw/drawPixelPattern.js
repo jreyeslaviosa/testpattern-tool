@@ -35,8 +35,8 @@ export function drawPixelPattern(ctx, settings) {
     ctx.fillStyle = colors.blendZone
     projectors.forEach((p, i) => {
       const { x, y } = positions[i]
-      if (p.blend.left > 0)   ctx.fillRect(x, 0, p.blend.left, outputHeight)
-      if (p.blend.right > 0)  ctx.fillRect(x + p.width - p.blend.right, 0, p.blend.right, outputHeight)
+      if (p.blend.left > 0)   ctx.fillRect(x, y, p.blend.left, p.height)
+      if (p.blend.right > 0)  ctx.fillRect(x + p.width - p.blend.right, y, p.blend.right, p.height)
       if (p.blend.top > 0)    ctx.fillRect(x, y, p.width, p.blend.top)
       if (p.blend.bottom > 0) ctx.fillRect(x, y + p.height - p.blend.bottom, p.width, p.blend.bottom)
     })
@@ -120,6 +120,7 @@ function drawPattern(ctx, w, h, offsetY, interval, type, colors) {
 }
 
 function hexToRgba(hex, alpha) {
+  if (!hex || hex[0] !== '#' || hex.length < 7) return `rgba(0,0,0,${alpha})`
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)

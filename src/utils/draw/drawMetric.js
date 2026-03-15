@@ -73,13 +73,11 @@ function drawPattern(ctx, w, h, interval, type, colors) {
     ctx.fillStyle = hGrad
     ctx.fillRect(0, 0, w, h)
 
-    ctx.globalCompositeOperation = 'source-over'
     const vGrad = ctx.createLinearGradient(0, 0, 0, h)
     vGrad.addColorStop(0, hexToRgba(colors.pattern, 0.5))
     vGrad.addColorStop(1, 'transparent')
     ctx.fillStyle = vGrad
     ctx.fillRect(0, 0, w, h)
-    ctx.globalCompositeOperation = 'source-over'
   }
 }
 
@@ -106,6 +104,7 @@ function drawRegistrationMarks(ctx, w, h, color) {
 }
 
 function hexToRgba(hex, alpha) {
+  if (!hex || hex[0] !== '#' || hex.length < 7) return `rgba(0,0,0,${alpha})`
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
