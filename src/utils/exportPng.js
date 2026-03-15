@@ -21,7 +21,7 @@ export async function exportPng(settings, filename = 'pattern.png') {
 
   if (settings.mode === 'metric') {
     drawMetric(ctx, settings)
-  } else {
+  } else if (settings.mode === 'pixel') {
     drawPixelPattern(ctx, settings)
   }
 
