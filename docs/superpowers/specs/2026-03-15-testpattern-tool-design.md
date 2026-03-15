@@ -109,14 +109,15 @@ The pixel output display is always read-only. Locking does not make it editable.
 
 ### Screen 3 — Pixel Pattern Mode
 
-**Purpose:** Generate a composite test pattern for a horizontal multi-projector setup, showing each projector's canvas region, blend zones, and alignment grid.
+**Purpose:** Generate a composite test pattern for a multi-projector setup, showing each projector's canvas region, blend zones, and alignment grid.
 
-**Projector layout is always a single horizontal row.** Vertical stacking and grid arrangements are out of scope.
+**Layout direction** is user-selectable: **Horizontal** (projectors side-by-side in a single row) or **Vertical** (projectors stacked in a single column). Grid arrangements (2×2, 3×2, etc.) are out of scope.
 
 **Default state on first load:**
 
 | Field | Default |
 |---|---|
+| Layout direction | Horizontal |
 | Projector count | 1 |
 | Projector label | "Projector 1" |
 | Resolution | 1920 × 1080 |
@@ -145,20 +146,41 @@ Dynamic list of projectors (1 to 10+). Each projector card contains:
 
 **Blend values are independent per projector and edge.** Adjacent projectors do not need matching values — the app treats each value as-entered. A shared physical blend region may have different values on the two sides; this is intentional (the user may configure asymmetric blends).
 
-**Total canvas size formula (horizontal layout):**
+**Total canvas size formulas:**
+
+*Horizontal layout:*
 ```
 total_width  = sum(p.width for each projector p)
                - sum(p.blend_right for p in projectors[0..N-2])
 total_height = max(p.height for each projector p)
 ```
-Only `blend_right` of each non-last projector is subtracted (each overlap region is counted once). `blend_left` of projectors is not subtracted from the total — it only controls the visual width of the highlighted overlay on that projector's left edge.
+Only `blend_right` of each non-last projector is subtracted (each overlap region is counted once).
 
-**Projector x-position in the composite canvas:**
+*Vertical layout:*
+```
+total_width  = max(p.width for each projector p)
+total_height = sum(p.height for each projector p)
+               - sum(p.blend_bottom for p in projectors[0..N-2])
+```
+Only `blend_bottom` of each non-last projector is subtracted.
+
+**Projector position in the composite canvas:**
+
+*Horizontal layout:*
 ```
 x[0] = 0
 x[N] = x[N-1] + projectors[N-1].width - projectors[N-1].blend_right
+y[N] = 0  (all projectors share y=0)
 ```
-Each projector's region starts at `x[N]` and extends `projectors[N].width` pixels to the right. The `blend_left` overlay is drawn starting at `x[N]`, extending `blend_left` pixels rightward into that projector's own region. The `blend_right` overlay is drawn at `x[N] + width - blend_right`, extending `blend_right` pixels rightward. Blend overlays from adjacent projectors may visually overlap in the physical seam area — this is intentional.
+
+*Vertical layout:*
+```
+y[0] = 0
+y[N] = y[N-1] + projectors[N-1].height - projectors[N-1].blend_bottom
+x[N] = 0  (all projectors share x=0)
+```
+
+Each projector's region starts at `(x[N], y[N])` and extends `projectors[N].width × projectors[N].height` pixels. Blend overlays from adjacent projectors may visually overlap in the physical seam area — this is intentional.
 
 **Export resolution:** The PNG is rendered at `total_width × total_height` as calculated above.
 
@@ -176,6 +198,7 @@ Each projector's region starts at `x[N]` and extends `projectors[N].width` pixel
 
 | Option | Description |
 |---|---|
+| Layout direction | Toggle: Horizontal / Vertical. Changes projector arrangement and canvas size formula. |
 | Color bars | Toggle SMPTE 75% color bars (see Color Bars section below) |
 | Show blend zones | Overlay semi-transparent highlight on blend regions |
 | Grid size | Pixel size of alignment grid cells (default 100 px). Numeric input. Must be ≥ 1. |
@@ -186,7 +209,7 @@ Each projector's region starts at `x[N]` and extends `projectors[N].width` pixel
 | Blend zone color | Color picker |
 
 **Canvas output:**
-- Projectors rendered side-by-side in a single row
+- Projectors rendered side-by-side (horizontal) or stacked (vertical) based on layout direction
 - Grid / selected pattern across the full composite canvas
 - Blend zone overlays drawn as semi-transparent rectangles using the blend zone color at 30% opacity:
   - Left edge overlay: `x = projector_x`, `y = 0`, `w = blend_left`, `h = total_height`
@@ -287,6 +310,7 @@ No server, no database.
     }
   ],
   "display": {
+    "layoutDirection": "horizontal",
     "colorBars": true,
     "showBlendZones": true,
     "gridSize": 100,
@@ -374,4 +398,4 @@ src/
 - Real-time collaboration
 - Undo/redo history
 - Mobile layout (desktop-first)
-- Vertical or grid projector arrangements
+- Grid projector arrangements (2×2, 3×2, etc.) — single row or column only
