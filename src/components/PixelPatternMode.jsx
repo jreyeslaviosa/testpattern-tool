@@ -3,17 +3,12 @@ import { useRef, useState } from 'react'
 import { usePixelState } from '../hooks/usePixelState'
 import CanvasPreview from './CanvasPreview'
 import ColorPicker from './ColorPicker'
-import ProjectorCard from './ProjectorCard'
 import ThemeToggle from './ThemeToggle'
 import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
 
 export default function PixelPatternMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
-  const {
-    state, settings,
-    addProjector, removeProjector, updateProjector, updateProjectorBlend,
-    setDisplay, setColor, applyPreset,
-  } = usePixelState(initialPreset)
+  const { state, settings, setGrid, setDisplay, setColor, applyPreset } = usePixelState(initialPreset)
   const [toast, setToast] = useState(null)
   const fileRef = useRef(null)
 
@@ -36,7 +31,7 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
         return
       }
       applyPreset(preset)
-      if (warningSkipped) showToast('Some projectors had invalid data and were skipped.')
+      if (warningSkipped) showToast('Some projector data was lost during migration.')
     } catch {
       showToast('Invalid preset file', true)
     }
@@ -44,7 +39,7 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
   }
 
   function handleExport() {
-    downloadPreset(state, `pixel-${state.projectors.length}proj.json`)
+    downloadPreset(state, `pixel-${state.grid.cols}x${state.grid.rows}.json`)
   }
 
   async function handleExportPng() {
@@ -52,12 +47,16 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
     await exportPng(settings, `pattern-${settings.outputWidth}x${settings.outputHeight}.png`)
   }
 
+  const inputStyle = (errKey) => ({
+    borderColor: errors[errKey] ? 'var(--danger)' : undefined,
+  })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Header */}
       <header style={{
         background: 'var(--bg-panel)', borderBottom: '1px solid var(--border)',
-        padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0
+        padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={onHome} style={{ color: 'var(--accent)', border: 'none', background: 'none', fontSize: 12 }}>← Home</button>
@@ -78,51 +77,58 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
           width: 240, background: 'var(--bg-panel)', borderRight: '1px solid var(--border)',
           padding: 12, overflowY: 'auto', flexShrink: 0,
         }}>
-          {/* Layout direction */}
-          <div className="section-title">Layout</div>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-            {['horizontal','vertical'].map(dir => (
-              <button key={dir}
-                onClick={() => setDisplay('layoutDirection', dir)}
-                style={{
-                  flex: 1, fontSize: 11,
-                  background: state.display.layoutDirection === dir ? 'var(--accent)' : 'var(--bg-input)',
-                  color: state.display.layoutDirection === dir ? 'var(--accent-text)' : 'var(--text-primary)',
-                  borderColor: state.display.layoutDirection === dir ? 'var(--accent)' : 'var(--border)',
-                }}>
-                {dir === 'horizontal' ? '↔ Horizontal' : '↕ Vertical'}
-              </button>
-            ))}
+          {/* Grid */}
+          <div className="section-title">Grid</div>
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Cols</span>
+            <input type="number" min="1" value={state.grid.cols}
+              onChange={e => setGrid('cols', Math.max(1, parseInt(e.target.value) || 1))}
+              style={{ width: 50, ...inputStyle('cols') }} />
+            <span className="field-label" style={{ marginLeft: 8 }}>Rows</span>
+            <input type="number" min="1" value={state.grid.rows}
+              onChange={e => setGrid('rows', Math.max(1, parseInt(e.target.value) || 1))}
+              style={{ width: 50, ...inputStyle('rows') }} />
+          </div>
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">W</span>
+            <input type="number" min="1" value={state.grid.width}
+              onChange={e => setGrid('width', Number(e.target.value))}
+              style={{ width: 65, ...inputStyle('width') }} />
+            <span className="field-unit">×</span>
+            <input type="number" min="1" value={state.grid.height}
+              onChange={e => setGrid('height', Number(e.target.value))}
+              style={{ width: 65, ...inputStyle('height') }} />
+            <span className="field-unit">px</span>
           </div>
 
-          {/* Projectors */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span className="section-title" style={{ margin: 0 }}>Projectors</span>
-            <button onClick={addProjector} style={{ fontSize: 11, color: 'var(--accent)', borderColor: 'var(--accent)' }}>+ Add</button>
+          {/* Blend */}
+          <div className="section-title">Blend</div>
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Horiz.</span>
+            <input type="number" min="0" value={state.grid.blendH}
+              onChange={e => setGrid('blendH', Number(e.target.value))}
+              style={{ width: 65, ...inputStyle('blendH') }} />
+            <span className="field-unit">px</span>
           </div>
-
-          {state.projectors.map((p, i) => (
-            <ProjectorCard key={i} projector={p} index={i}
-              onUpdate={updateProjector}
-              onUpdateBlend={updateProjectorBlend}
-              onRemove={removeProjector}
-              errors={{
-                width:   errors[`p${i}width`],
-                height:  errors[`p${i}height`],
-                blendL:  errors[`p${i}blendL`],
-                blendR:  errors[`p${i}blendR`],
-                blendT:  errors[`p${i}blendT`],
-                blendB:  errors[`p${i}blendB`],
-              }}
-            />
-          ))}
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Vert.</span>
+            <input type="number" min="0" value={state.grid.blendV}
+              onChange={e => setGrid('blendV', Number(e.target.value))}
+              style={{ width: 65, ...inputStyle('blendV') }} />
+            <span className="field-unit">px</span>
+          </div>
+          {(errors.blendH || errors.blendV) && (
+            <div className="error-text">Blend must be 0 to less than cell dimension</div>
+          )}
 
           <div className="info-box">
             Total: <strong>{settings.outputWidth} × {settings.outputHeight} px</strong>
-            <div style={{ fontSize: 10, marginTop: 2 }}>{state.projectors.length} projector{state.projectors.length !== 1 ? 's' : ''}</div>
+            <div style={{ fontSize: 10, marginTop: 2 }}>
+              {state.grid.cols} × {state.grid.rows} cell{state.grid.rows * state.grid.cols !== 1 ? 's' : ''}
+            </div>
           </div>
 
-          {/* Display options */}
+          {/* Display */}
           <div className="section-title">Display</div>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
             <input type="checkbox" checked={state.display.colorBars}
@@ -134,29 +140,57 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
               onChange={e => setDisplay('showBlendZones', e.target.checked)} />
             Show blend zones
           </label>
-
-          <div className="field-row">
+          <div className="field-row" style={{ marginBottom: 4 }}>
             <span className="field-label">Grid size</span>
             <input type="number" min="1" value={state.display.gridSize}
               onChange={e => setDisplay('gridSize', Number(e.target.value))}
-              style={{ width: 60, borderColor: errors.gridSize ? 'var(--danger)' : undefined }} />
+              style={{ width: 55, ...inputStyle('gridSize') }} />
             <span className="field-unit">px</span>
           </div>
-          {errors.gridSize && <div className="error-text">Must be at least 1</div>}
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Text size</span>
+            <input type="number" min="8" value={state.display.textSize}
+              onChange={e => setDisplay('textSize', Number(e.target.value))}
+              style={{ width: 55, ...inputStyle('textSize') }} />
+            <span className="field-unit">px</span>
+          </div>
+          {errors.gridSize && <div className="error-text">Grid size must be ≥ 1</div>}
+          {errors.textSize && <div className="error-text">Text size must be ≥ 8</div>}
 
+          {/* Pattern */}
           <div className="section-title">Pattern</div>
           <select value={state.display.patternType} onChange={e => setDisplay('patternType', e.target.value)}
             style={{ width: '100%', marginBottom: 8, padding: '4px 6px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text-primary)' }}>
-            {['grid','dots','crosshatch','solid','gradient'].map(t => (
+            {['grid', 'dots', 'crosshatch', 'solid', 'gradient', 'reference'].map(t => (
               <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
             ))}
           </select>
 
+          {/* Reference-specific options */}
+          {state.display.patternType === 'reference' && (
+            <>
+              <div className="section-title">Reference</div>
+              <div className="field-row" style={{ marginBottom: 5 }}>
+                <span className="field-label">Title</span>
+                <input type="text" value={state.display.title}
+                  onChange={e => setDisplay('title', e.target.value)}
+                  placeholder="Pattern name…"
+                  style={{ flex: 1 }} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <input type="checkbox" checked={state.display.showCircles}
+                  onChange={e => setDisplay('showCircles', e.target.checked)} />
+                Show circles
+              </label>
+            </>
+          )}
+
+          {/* Colors */}
           <div className="section-title">Colors</div>
           <ColorPicker label="Background" value={state.colors.background} onChange={v => setColor('background', v)} />
-          <ColorPicker label="Pattern" value={state.colors.pattern} onChange={v => setColor('pattern', v)} />
-          <ColorPicker label="Text" value={state.colors.text} onChange={v => setColor('text', v)} />
-          <ColorPicker label="Blend zone" value={state.colors.blendZone} onChange={v => setColor('blendZone', v)} />
+          <ColorPicker label="Pattern"    value={state.colors.pattern}    onChange={v => setColor('pattern', v)} />
+          <ColorPicker label="Text"       value={state.colors.text}       onChange={v => setColor('text', v)} />
+          <ColorPicker label="Blend zone" value={state.colors.blendZone}  onChange={v => setColor('blendZone', v)} />
         </aside>
 
         <CanvasPreview settings={settings} />
@@ -174,14 +208,13 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
 
 function validatePixel(state) {
   const errors = {}
-  state.projectors.forEach((p, i) => {
-    if (p.width < 1) errors[`p${i}width`] = true
-    if (p.height < 1) errors[`p${i}height`] = true
-    if (p.blend.left < 0 || p.blend.left >= p.width) errors[`p${i}blendL`] = true
-    if (p.blend.right < 0 || p.blend.right >= p.width) errors[`p${i}blendR`] = true
-    if (p.blend.top < 0 || p.blend.top >= p.height) errors[`p${i}blendT`] = true
-    if (p.blend.bottom < 0 || p.blend.bottom >= p.height) errors[`p${i}blendB`] = true
-  })
-  if (state.display.gridSize < 1) errors.gridSize = true
+  if (!state.grid.cols || state.grid.cols < 1) errors.cols = true
+  if (!state.grid.rows || state.grid.rows < 1) errors.rows = true
+  if (!state.grid.width || state.grid.width < 1) errors.width = true
+  if (!state.grid.height || state.grid.height < 1) errors.height = true
+  if (state.grid.blendH < 0 || state.grid.blendH >= state.grid.width) errors.blendH = true
+  if (state.grid.blendV < 0 || state.grid.blendV >= state.grid.height) errors.blendV = true
+  if (!state.display.gridSize || state.display.gridSize < 1) errors.gridSize = true
+  if (!state.display.textSize || state.display.textSize < 8) errors.textSize = true
   return errors
 }
