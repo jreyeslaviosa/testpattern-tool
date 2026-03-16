@@ -68,7 +68,13 @@ export function validatePreset(raw) {
     if (!raw.wall || typeof raw.wall.width !== 'number' || typeof raw.wall.height !== 'number') {
       return { valid: false, error: 'Missing wall dimensions' }
     }
-    return { valid: true, preset: raw }
+    // Migrate old dpi field to resolution (px/m)
+    let preset = raw
+    if (!preset.resolution && preset.dpi) {
+      const { dpi, ...rest } = preset
+      preset = { ...rest, resolution: Math.round(dpi / 0.0254) }
+    }
+    return { valid: true, preset }
   }
 
   if (raw.mode === 'pixel') {

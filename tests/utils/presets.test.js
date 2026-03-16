@@ -8,8 +8,8 @@ import {
 const validMetric = {
   mode: 'metric',
   wall: { width: 8, height: 4.5 },
-  dpi: 96,
-  lock: { width: false, height: false, pixelWidth: null, pixelHeight: null },
+  resolution: 3780,
+  lock: { width: false, height: false, aspectRatio: false, pixelWidth: null, pixelHeight: null, arRatio: null },
   gridSubdivision: 1,
   patternType: 'grid',
   colors: { background: '#fff', pattern: '#000', text: '#000', border: '#000' },
@@ -133,6 +133,14 @@ describe('validatePreset', () => {
 
   it('ignores unknown extra fields', () => {
     expect(validatePreset({ ...validMetric, unknownField: 'foo' })).toMatchObject({ valid: true })
+  })
+
+  it('migrates old dpi field to resolution for metric preset', () => {
+    const old = { mode: 'metric', wall: { width: 8, height: 4.5 }, dpi: 96 }
+    const { valid, preset } = validatePreset(old)
+    expect(valid).toBe(true)
+    expect(preset.resolution).toBe(Math.round(96 / 0.0254))
+    expect(preset.dpi).toBeUndefined()
   })
 })
 

@@ -1,12 +1,18 @@
 // src/hooks/useMetricState.js
 import { useState, useMemo } from 'react'
-import { metersToPixels } from '../utils/calculations'
 
 const DEFAULTS = {
   mode: 'metric',
   wall: { width: 8.0, height: 4.5 },
-  dpi: 96,
-  lock: { width: false, height: false, pixelWidth: null, pixelHeight: null },
+  resolution: 3780,  // px/m  (~96 DPI)
+  lock: {
+    width: false,
+    height: false,
+    aspectRatio: false,
+    pixelWidth: null,
+    pixelHeight: null,
+    arRatio: null,
+  },
   gridSubdivision: 1.0,
   patternType: 'grid',
   colors: { background: '#ffffff', pattern: '#374151', text: '#374151', border: '#111111' },
@@ -16,20 +22,29 @@ export function useMetricState(initialPreset) {
   const [state, setState] = useState(() => initialPreset ? { ...DEFAULTS, ...initialPreset } : DEFAULTS)
 
   const settings = useMemo(() => {
-    const rawW = metersToPixels(state.wall.width, state.dpi)
-    const rawH = metersToPixels(state.wall.height, state.dpi)
+    const rawW = Math.floor(state.wall.width * state.resolution)
+    const rawH = Math.floor(state.wall.height * state.resolution)
     const outputWidth  = state.lock.width  && state.lock.pixelWidth  ? state.lock.pixelWidth  : rawW
     const outputHeight = state.lock.height && state.lock.pixelHeight ? state.lock.pixelHeight : rawH
-    const gridInterval = metersToPixels(state.gridSubdivision, state.dpi)
+    const gridInterval = Math.floor(state.gridSubdivision * state.resolution)
     return { ...state, outputWidth, outputHeight, gridInterval }
   }, [state])
 
   function setWall(key, value) {
-    setState(s => ({ ...s, wall: { ...s.wall, [key]: value } }))
+    setState(s => {
+      if (s.lock.aspectRatio && s.lock.arRatio) {
+        if (key === 'width') {
+          return { ...s, wall: { width: value, height: +((value / s.lock.arRatio).toFixed(4)) } }
+        } else {
+          return { ...s, wall: { width: +((value * s.lock.arRatio).toFixed(4)), height: value } }
+        }
+      }
+      return { ...s, wall: { ...s.wall, [key]: value } }
+    })
   }
 
-  function setDpi(value) {
-    setState(s => ({ ...s, dpi: value }))
+  function setResolution(value) {
+    setState(s => ({ ...s, resolution: value }))
   }
 
   function setGridSubdivision(value) {
@@ -45,16 +60,24 @@ export function useMetricState(initialPreset) {
   }
 
   function toggleLock(key) {
+    if (key === 'aspectRatio') {
+      setState(s => {
+        if (!s.lock.aspectRatio) {
+          const arRatio = s.wall.height > 0 ? s.wall.width / s.wall.height : 1
+          return { ...s, lock: { ...s.lock, aspectRatio: true, arRatio } }
+        }
+        return { ...s, lock: { ...s.lock, aspectRatio: false, arRatio: null } }
+      })
+      return
+    }
     setState(s => {
       const pixelKey = `pixel${key.charAt(0).toUpperCase() + key.slice(1)}`
       if (!s.lock[key]) {
-        // Engaging lock — validate dimension first, then snapshot pixels
         const dim = key === 'width' ? s.wall.width : s.wall.height
-        if (!dim || dim <= 0) return s // don't engage on invalid input
-        const currentPixels = metersToPixels(dim, s.dpi)
+        if (!dim || dim <= 0) return s
+        const currentPixels = Math.floor(dim * s.resolution)
         return { ...s, lock: { ...s.lock, [key]: true, [pixelKey]: currentPixels } }
       } else {
-        // Releasing lock — clear snapshot
         return { ...s, lock: { ...s.lock, [key]: false, [pixelKey]: null } }
       }
     })
@@ -69,5 +92,5 @@ export function useMetricState(initialPreset) {
     setState({ ...DEFAULTS, ...preset })
   }
 
-  return { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset }
+  return { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset }
 }

@@ -8,7 +8,7 @@ import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
 
 export default function MetricMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
-  const { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset } = useMetricState(initialPreset)
+  const { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset } = useMetricState(initialPreset)
   const [toast, setToast] = useState(null)
   const fileRef = useRef(null)
 
@@ -47,6 +47,8 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
     await exportPng(settings, `pattern-${settings.outputWidth}x${settings.outputHeight}.png`)
   }
 
+  const arActive = state.lock.aspectRatio
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Header */}
@@ -71,27 +73,54 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Left panel */}
         <aside style={{
-          width: 220, background: 'var(--bg-panel)', borderRight: '1px solid var(--border)',
+          width: 240, background: 'var(--bg-panel)', borderRight: '1px solid var(--border)',
           padding: 12, overflowY: 'auto', flexShrink: 0
         }}>
           <div className="section-title">Wall Dimensions</div>
 
-          <DimField label="Width" value={state.wall.width} locked={state.lock.width}
-            pixelValue={state.lock.pixelWidth} currentPixels={settings.outputWidth}
+          <DimField
+            label="Width" value={state.wall.width} locked={state.lock.width}
+            pixelValue={state.lock.pixelWidth}
+            computedPixels={Math.floor(state.wall.width * state.resolution)}
             onLock={() => toggleLock('width')} onChange={v => setWall('width', v)}
             onPixelChange={v => setLockPixels('width', v)}
-            error={errors.width} />
-          <DimField label="Height" value={state.wall.height} locked={state.lock.height}
-            pixelValue={state.lock.pixelHeight} currentPixels={settings.outputHeight}
+            error={errors.width}
+          />
+          <DimField
+            label="Height" value={state.wall.height} locked={state.lock.height}
+            pixelValue={state.lock.pixelHeight}
+            computedPixels={Math.floor(state.wall.height * state.resolution)}
             onLock={() => toggleLock('height')} onChange={v => setWall('height', v)}
             onPixelChange={v => setLockPixels('height', v)}
-            error={errors.height} />
+            error={errors.height}
+          />
 
-          <div className="field-row" style={{ marginBottom: 5 }}>
-            <span className="field-label">DPI</span>
-            <input type="number" min="1" value={state.dpi} onChange={e => setDpi(Number(e.target.value))} style={{ width: 70 }} />
-            {errors.dpi && <span className="error-text">{errors.dpi}</span>}
+          {/* Aspect ratio lock */}
+          <div style={{ marginBottom: 8 }}>
+            <button
+              onClick={() => toggleLock('aspectRatio')}
+              style={{
+                width: '100%', fontSize: 11, padding: '3px 0',
+                background: arActive ? 'var(--accent)' : 'var(--bg-input)',
+                color: arActive ? 'var(--accent-text)' : 'var(--text-primary)',
+                borderColor: arActive ? 'var(--accent)' : 'var(--border)',
+              }}
+            >
+              {arActive
+                ? `🔗 AR locked  ${(state.wall.width / state.wall.height).toFixed(2)}:1`
+                : '🔗 Lock aspect ratio'}
+            </button>
           </div>
+
+          {/* Resolution */}
+          <div className="field-row" style={{ marginBottom: 5 }}>
+            <span className="field-label">Resolution</span>
+            <input type="number" min="1" value={state.resolution}
+              onChange={e => setResolution(Number(e.target.value))}
+              style={{ width: 70 }} />
+            <span className="field-unit">px/m</span>
+          </div>
+          {errors.resolution && <span className="error-text">{errors.resolution}</span>}
 
           <div className="info-box">
             → <strong>{settings.outputWidth} × {settings.outputHeight} px</strong>
@@ -139,21 +168,21 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
   )
 }
 
-function DimField({ label, value, locked, pixelValue, currentPixels, onLock, onChange, onPixelChange, error }) {
+function DimField({ label, value, locked, pixelValue, computedPixels, onLock, onChange, onPixelChange, error }) {
   return (
-    <div style={{ marginBottom: 5 }}>
+    <div style={{ marginBottom: 6 }}>
       <div className="field-row">
         <span className="field-label">{label}</span>
         <input type="number" min="0.01" step="0.1" value={value}
           onChange={e => onChange(Number(e.target.value))} style={{ width: 80 }} />
         <span className="field-unit">m</span>
-        <button onClick={onLock} title={locked ? 'Unlock' : 'Lock'}
+        <button onClick={onLock} title={locked ? 'Unlock' : 'Lock px'}
           style={{ padding: '2px 6px', color: locked ? 'var(--accent)' : 'var(--text-secondary)', borderColor: locked ? 'var(--accent)' : 'var(--border)' }}>
           {locked ? '🔒' : '🔓'}
         </button>
       </div>
       {locked ? (
-        <div className="field-row" style={{ marginTop: 3 }}>
+        <div className="field-row" style={{ marginTop: 2 }}>
           <span className="field-label" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>px lock</span>
           <input type="number" min="1" value={pixelValue || ''}
             onChange={e => onPixelChange(Number(e.target.value))}
@@ -161,8 +190,8 @@ function DimField({ label, value, locked, pixelValue, currentPixels, onLock, onC
           <span className="field-unit">px</span>
         </div>
       ) : (
-        <div style={{ fontSize: 10, color: 'var(--text-secondary)', paddingLeft: 2, marginTop: 2 }}>
-          {currentPixels} px
+        <div style={{ fontSize: 10, color: 'var(--text-secondary)', paddingLeft: 2, marginTop: 1 }}>
+          → {computedPixels} px
         </div>
       )}
       {error && <div className="error-text">{error}</div>}
@@ -174,7 +203,7 @@ function validate(state) {
   const errors = {}
   if (!state.wall.width || state.wall.width <= 0) errors.width = 'Must be greater than 0'
   if (!state.wall.height || state.wall.height <= 0) errors.height = 'Must be greater than 0'
-  if (!state.dpi || state.dpi < 1) errors.dpi = 'Must be at least 1'
+  if (!state.resolution || state.resolution < 1) errors.resolution = 'Must be at least 1'
   if (!state.gridSubdivision || state.gridSubdivision <= 0 || state.gridSubdivision > Math.min(state.wall.width, state.wall.height)) {
     errors.grid = 'Must be between 0 and the smaller wall dimension'
   }
