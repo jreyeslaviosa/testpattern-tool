@@ -1,5 +1,9 @@
+// tests/utils/presets.test.js
 import { describe, it, expect, beforeEach } from 'vitest'
-import { validatePreset, serializePreset, deserializePreset, loadLastPreset, saveLastPreset } from '../../src/utils/presets'
+import {
+  validatePreset, serializePreset, deserializePreset,
+  loadLastPreset, saveLastPreset, migratePixelPreset,
+} from '../../src/utils/presets'
 
 const validMetric = {
   mode: 'metric',
@@ -13,50 +17,122 @@ const validMetric = {
 
 const validPixel = {
   mode: 'pixel',
-  projectors: [{ label: 'P1', width: 1920, height: 1080, blend: { left: 0, right: 0, top: 0, bottom: 0 } }],
+  grid: { rows: 1, cols: 2, width: 1920, height: 1080, blendH: 0, blendV: 0 },
+  display: {
+    colorBars: false, showBlendZones: true, gridSize: 100, textSize: 14,
+    patternType: 'grid', showCircles: true, title: '',
+  },
+  colors: { background: '#000', pattern: '#fff', text: '#fff', blendZone: '#6366f1' },
+}
+
+const oldPixelSingle = {
+  mode: 'pixel',
+  projectors: [{ label: 'P1', width: 1920, height: 1080, blend: { left: 0, right: 40, top: 0, bottom: 0 } }],
   display: { layoutDirection: 'horizontal', colorBars: false, showBlendZones: true, gridSize: 100, patternType: 'grid' },
   colors: { background: '#fff', pattern: '#000', text: '#000', blendZone: '#6366f1' },
 }
 
-describe('validatePreset', () => {
-  it('accepts valid metric preset', () => {
-    expect(validatePreset(validMetric)).toEqual({ valid: true, preset: validMetric })
+describe('migratePixelPreset', () => {
+  it('passes through new-format preset unchanged', () => {
+    const { migrated, warningSkipped } = migratePixelPreset(validPixel)
+    expect(migrated).toEqual(validPixel)
+    expect(warningSkipped).toBe(false)
   })
-  it('accepts valid pixel preset', () => {
-    expect(validatePreset(validPixel)).toEqual({ valid: true, preset: validPixel })
+
+  it('passes through non-pixel preset unchanged', () => {
+    const { migrated, warningSkipped } = migratePixelPreset(validMetric)
+    expect(migrated).toEqual(validMetric)
+    expect(warningSkipped).toBe(false)
   })
-  it('rejects missing mode', () => {
-    const { valid } = validatePreset({ wall: {} })
-    expect(valid).toBe(false)
+
+  it('converts single old-format projector to grid', () => {
+    const { migrated, warningSkipped } = migratePixelPreset(oldPixelSingle)
+    expect(migrated.grid).toEqual({ rows: 1, cols: 1, width: 1920, height: 1080, blendH: 40, blendV: 0 })
+    expect(migrated.projectors).toBeUndefined()
+    expect(warningSkipped).toBe(false)
   })
-  it('rejects metric without wall', () => {
-    const { valid } = validatePreset({ mode: 'metric' })
-    expect(valid).toBe(false)
-  })
-  it('rejects pixel with empty projectors array', () => {
-    const { valid } = validatePreset({ mode: 'pixel', projectors: [] })
-    expect(valid).toBe(false)
-  })
-  it('filters out projectors missing width/height and rejects if none remain', () => {
-    const preset = { ...validPixel, projectors: [{ label: 'bad' }] }
-    const { valid } = validatePreset(preset)
-    expect(valid).toBe(false)
-  })
-  it('filters out invalid projectors but keeps valid ones', () => {
+
+  it('converts multi-projector old preset: cols = projectors.length', () => {
     const preset = {
-      ...validPixel,
+      ...oldPixelSingle,
       projectors: [
-        { label: 'bad' },
-        { label: 'P1', width: 1920, height: 1080, blend: { left: 0, right: 0, top: 0, bottom: 0 } },
+        { label: 'P1', width: 1920, height: 1080, blend: { left: 0, right: 40, top: 0, bottom: 0 } },
+        { label: 'P2', width: 1920, height: 1080, blend: { left: 0, right: 40, top: 0, bottom: 0 } },
       ],
     }
-    const { valid, preset: result } = validatePreset(preset)
-    expect(valid).toBe(true)
-    expect(result.projectors).toHaveLength(1)
+    const { migrated } = migratePixelPreset(preset)
+    expect(migrated.grid.cols).toBe(2)
+    expect(migrated.grid.rows).toBe(1)
   })
+
+  it('blendV is always 0 for migrated horizontal presets', () => {
+    const { migrated } = migratePixelPreset(oldPixelSingle)
+    expect(migrated.grid.blendV).toBe(0)
+  })
+
+  it('sets warningSkipped=true when projectors have non-uniform sizes', () => {
+    const preset = {
+      ...oldPixelSingle,
+      projectors: [
+        { label: 'P1', width: 1920, height: 1080, blend: { left: 0, right: 0, top: 0, bottom: 0 } },
+        { label: 'P2', width: 1024, height: 768,  blend: { left: 0, right: 0, top: 0, bottom: 0 } },
+      ],
+    }
+    const { warningSkipped } = migratePixelPreset(preset)
+    expect(warningSkipped).toBe(true)
+  })
+
+  it('drops layoutDirection from display', () => {
+    const { migrated } = migratePixelPreset(oldPixelSingle)
+    expect(migrated.display).not.toHaveProperty('layoutDirection')
+  })
+})
+
+describe('validatePreset', () => {
+  it('accepts valid metric preset', () => {
+    expect(validatePreset(validMetric)).toMatchObject({ valid: true })
+  })
+
+  it('accepts valid new pixel preset', () => {
+    expect(validatePreset(validPixel)).toMatchObject({ valid: true })
+  })
+
+  it('rejects missing mode', () => {
+    expect(validatePreset({ wall: {} })).toMatchObject({ valid: false })
+  })
+
+  it('rejects metric without wall', () => {
+    expect(validatePreset({ mode: 'metric' })).toMatchObject({ valid: false })
+  })
+
+  it('rejects pixel preset missing grid', () => {
+    expect(validatePreset({ mode: 'pixel', display: {}, colors: {} })).toMatchObject({ valid: false })
+  })
+
+  it('rejects blendH >= width', () => {
+    const preset = { ...validPixel, grid: { ...validPixel.grid, blendH: 1920 } }
+    expect(validatePreset(preset)).toMatchObject({ valid: false })
+  })
+
+  it('rejects invalid patternType', () => {
+    const preset = { ...validPixel, display: { ...validPixel.display, patternType: 'invalid' } }
+    expect(validatePreset(preset)).toMatchObject({ valid: false })
+  })
+
+  it('fills missing optional display fields from defaults', () => {
+    const preset = {
+      ...validPixel,
+      display: { patternType: 'grid', gridSize: 100, textSize: 14 },
+    }
+    const { preset: result } = validatePreset(preset)
+    expect(result.display.colorBars).toBe(false)
+    expect(result.display.showCircles).toBe(true)
+    expect(result.display.title).toBe('')
+    expect(result.display.showBlendZones).toBe(true)
+  })
+
   it('ignores unknown extra fields', () => {
-    const { valid } = validatePreset({ ...validMetric, unknownField: 'foo' })
-    expect(valid).toBe(true)
+    expect(validatePreset({ ...validMetric, unknownField: 'foo' })).toMatchObject({ valid: true })
   })
 })
 
@@ -64,9 +140,9 @@ describe('serializePreset / deserializePreset', () => {
   it('round-trips a metric preset', () => {
     const json = serializePreset(validMetric)
     expect(typeof json).toBe('string')
-    const back = deserializePreset(json)
-    expect(back.mode).toBe('metric')
+    expect(deserializePreset(json).mode).toBe('metric')
   })
+
   it('returns null for invalid JSON', () => {
     expect(deserializePreset('not json')).toBeNull()
   })
@@ -78,10 +154,18 @@ describe('loadLastPreset / saveLastPreset', () => {
   it('returns null when no preset saved', () => {
     expect(loadLastPreset()).toBeNull()
   })
+
   it('returns saved preset', () => {
     saveLastPreset(validMetric, 'test.json')
     const result = loadLastPreset()
     expect(result.mode).toBe('metric')
     expect(result._filename).toBe('test.json')
+  })
+
+  it('migrates old pixel preset from localStorage', () => {
+    saveLastPreset(oldPixelSingle, 'old.json')
+    const result = loadLastPreset()
+    expect(result.grid).toBeDefined()
+    expect(result.projectors).toBeUndefined()
   })
 })

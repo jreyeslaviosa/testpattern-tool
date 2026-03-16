@@ -1,11 +1,57 @@
 // src/utils/presets.js
 
+const PIXEL_DISPLAY_DEFAULTS = {
+  colorBars: false,
+  showBlendZones: true,
+  gridSize: 100,
+  textSize: 14,
+  patternType: 'grid',
+  showCircles: true,
+  title: '',
+}
+
+/**
+ * migratePixelPreset: converts old projectors[] pixel preset to new grid format.
+ * Returns { migrated, warningSkipped }.
+ * Passes through unchanged if not pixel mode or already has grid.
+ *
+ * @param {unknown} raw
+ * @returns {{ migrated: unknown, warningSkipped: boolean }}
+ */
+export function migratePixelPreset(raw) {
+  if (!raw || typeof raw !== 'object') return { migrated: raw, warningSkipped: false }
+  if (raw.mode !== 'pixel' || raw.grid) return { migrated: raw, warningSkipped: false }
+
+  const projectors = Array.isArray(raw.projectors) ? raw.projectors : []
+  if (projectors.length === 0) return { migrated: raw, warningSkipped: false }
+
+  const p0 = projectors[0]
+  const nonUniform = projectors.some(p => p.width !== p0.width || p.height !== p0.height)
+
+  const { projectors: _proj, ...rest } = raw
+  const { layoutDirection: _ld, ...displayRest } = rest.display || {}
+
+  return {
+    migrated: {
+      ...rest,
+      display: displayRest,
+      grid: {
+        rows: 1,
+        cols: projectors.length,
+        width: p0.width,
+        height: p0.height,
+        blendH: p0.blend?.right ?? 0,
+        blendV: 0,
+      },
+    },
+    warningSkipped: nonUniform,
+  }
+}
+
 /**
  * Validate a preset object loaded from JSON or localStorage.
  *
  * Returns { valid: true, preset } on success, or { valid: false, error } on failure.
- * For pixel mode, projectors that lack numeric width/height are silently filtered out;
- * if none remain the preset is rejected.
  *
  * @param {unknown} raw
  * @returns {{ valid: boolean, preset?: object, error?: string, warningSkipped?: boolean }}
@@ -24,19 +70,27 @@ export function validatePreset(raw) {
   }
 
   if (raw.mode === 'pixel') {
-    if (!Array.isArray(raw.projectors) || raw.projectors.length === 0) {
-      return { valid: false, error: 'No projectors defined' }
+    const g = raw.grid
+    if (!g || typeof g !== 'object') return { valid: false, error: 'Missing grid' }
+    if (!Number.isInteger(g.rows) || g.rows < 1) return { valid: false, error: 'Invalid grid.rows' }
+    if (!Number.isInteger(g.cols) || g.cols < 1) return { valid: false, error: 'Invalid grid.cols' }
+    if (typeof g.width !== 'number' || g.width < 1) return { valid: false, error: 'Invalid grid.width' }
+    if (typeof g.height !== 'number' || g.height < 1) return { valid: false, error: 'Invalid grid.height' }
+    if (typeof g.blendH !== 'number' || g.blendH < 0 || g.blendH >= g.width) {
+      return { valid: false, error: 'Invalid grid.blendH' }
     }
-    const validProj = raw.projectors.filter(
-      p => typeof p.width === 'number' && typeof p.height === 'number'
-    )
-    if (validProj.length === 0) {
-      return { valid: false, error: 'No valid projectors after filtering' }
+    if (typeof g.blendV !== 'number' || g.blendV < 0 || g.blendV >= g.height) {
+      return { valid: false, error: 'Invalid grid.blendV' }
     }
-    const skipped = validProj.length < raw.projectors.length
-    const result = { valid: true, preset: { ...raw, projectors: validProj } }
-    if (skipped) result.warningSkipped = true
-    return result
+
+    const allowedPatterns = ['grid', 'dots', 'crosshatch', 'solid', 'gradient', 'reference']
+    const d = raw.display || {}
+    if (d.patternType && !allowedPatterns.includes(d.patternType)) {
+      return { valid: false, error: 'Invalid patternType' }
+    }
+
+    const display = { ...PIXEL_DISPLAY_DEFAULTS, ...d }
+    return { valid: true, preset: { ...raw, display } }
   }
 
   return { valid: false, error: 'Unknown mode' }
@@ -85,6 +139,7 @@ export function saveLastPreset(preset, filename) {
 /**
  * Load the most recently saved preset from localStorage.
  * Returns null if nothing is stored or if parsing fails.
+ * Migrates old pixel format (projectors[]) to new grid format automatically.
  *
  * @returns {object|null}
  */
@@ -92,7 +147,9 @@ export function loadLastPreset() {
   try {
     const raw = localStorage.getItem('lastPreset')
     if (!raw) return null
-    return JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    const { migrated } = migratePixelPreset(parsed)
+    return migrated
   } catch {
     return null
   }
@@ -121,6 +178,7 @@ export function downloadPreset(state, filename = 'preset.json') {
 /**
  * Read a File object as text, parse it, and validate the resulting preset.
  * Throws if the file is not valid JSON or fails validation.
+ * Migrates old pixel format (projectors[]) to new grid format automatically.
  *
  * @param {File} file
  * @returns {Promise<{ preset: object, warningSkipped?: boolean }>}
@@ -129,7 +187,11 @@ export async function readPresetFile(file) {
   const text = await file.text()
   const raw = deserializePreset(text)
   if (!raw) throw new Error('Invalid preset file')
-  const result = validatePreset(raw)
+  const { migrated, warningSkipped: migrationWarning } = migratePixelPreset(raw)
+  const result = validatePreset(migrated)
   if (!result.valid) throw new Error('Invalid preset file')
-  return { preset: { ...result.preset, _filename: file.name }, warningSkipped: result.warningSkipped }
+  return {
+    preset: { ...result.preset, _filename: file.name },
+    warningSkipped: result.warningSkipped || migrationWarning,
+  }
 }
