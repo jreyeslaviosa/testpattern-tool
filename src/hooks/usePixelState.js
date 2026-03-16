@@ -1,38 +1,42 @@
 // src/hooks/usePixelState.js
 import { useState, useMemo } from 'react'
-import { calcPixelTotal, calcProjectorPositions } from '../utils/calculations'
-
-const DEFAULT_PROJECTOR = {
-  label: 'Projector 1',
-  width: 1920,
-  height: 1080,
-  blend: { left: 0, right: 0, top: 0, bottom: 0 },
-}
+import { calcGridTotal, calcGridPositions } from '../utils/calculations'
 
 const DEFAULTS = {
   mode: 'pixel',
-  projectors: [{ ...DEFAULT_PROJECTOR }],
+  grid: {
+    rows: 1,
+    cols: 2,
+    width: 1920,
+    height: 1080,
+    blendH: 0,
+    blendV: 0,
+  },
   display: {
-    layoutDirection: 'horizontal',
     colorBars: false,
     showBlendZones: true,
     gridSize: 100,
+    textSize: 14,
     patternType: 'grid',
+    showCircles: true,
+    title: '',
   },
   colors: {
-    background: '#ffffff',
-    pattern: '#374151',
-    text: '#374151',
+    background: '#000000',
+    pattern: '#ffffff',
+    text: '#ffffff',
     blendZone: '#6366f1',
   },
 }
 
 export function usePixelState(initialPreset) {
-  const [state, setState] = useState(() => initialPreset ? { ...DEFAULTS, ...initialPreset } : DEFAULTS)
+  const [state, setState] = useState(() =>
+    initialPreset ? { ...DEFAULTS, ...initialPreset } : DEFAULTS
+  )
 
   const settings = useMemo(() => {
-    const { totalWidth, totalHeight } = calcPixelTotal(state.projectors, state.display.layoutDirection)
-    const positions = calcProjectorPositions(state.projectors, state.display.layoutDirection)
+    const { totalWidth, totalHeight } = calcGridTotal(state.grid)
+    const positions = calcGridPositions(state.grid)
     return {
       ...state,
       outputWidth: totalWidth,
@@ -41,37 +45,8 @@ export function usePixelState(initialPreset) {
     }
   }, [state])
 
-  function addProjector() {
-    setState(s => ({
-      ...s,
-      projectors: [
-        ...s.projectors,
-        { ...DEFAULT_PROJECTOR, label: `Projector ${s.projectors.length + 1}` },
-      ],
-    }))
-  }
-
-  function removeProjector(index) {
-    setState(s => {
-      if (s.projectors.length <= 1) return s
-      return { ...s, projectors: s.projectors.filter((_, i) => i !== index) }
-    })
-  }
-
-  function updateProjector(index, key, value) {
-    setState(s => ({
-      ...s,
-      projectors: s.projectors.map((p, i) => i === index ? { ...p, [key]: value } : p),
-    }))
-  }
-
-  function updateProjectorBlend(index, edge, value) {
-    setState(s => ({
-      ...s,
-      projectors: s.projectors.map((p, i) =>
-        i === index ? { ...p, blend: { ...p.blend, [edge]: value } } : p
-      ),
-    }))
+  function setGrid(key, value) {
+    setState(s => ({ ...s, grid: { ...s.grid, [key]: value } }))
   }
 
   function setDisplay(key, value) {
@@ -86,9 +61,5 @@ export function usePixelState(initialPreset) {
     setState({ ...DEFAULTS, ...preset })
   }
 
-  return {
-    state, settings,
-    addProjector, removeProjector, updateProjector, updateProjectorBlend,
-    setDisplay, setColor, applyPreset,
-  }
+  return { state, settings, setGrid, setDisplay, setColor, applyPreset }
 }
