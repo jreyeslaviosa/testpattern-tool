@@ -46,23 +46,16 @@ export function useMetricState(initialPreset) {
 
   function toggleLock(key) {
     setState(s => {
-      const currentPixels = key === 'width'
-        ? metersToPixels(s.wall.width, s.dpi)
-        : metersToPixels(s.wall.height, s.dpi)
+      const pixelKey = `pixel${key.charAt(0).toUpperCase() + key.slice(1)}`
       if (!s.lock[key]) {
-        // Engaging lock — validate first
+        // Engaging lock — validate dimension first, then snapshot pixels
         const dim = key === 'width' ? s.wall.width : s.wall.height
-        if (!dim || dim <= 0) return s // don't engage
-        return {
-          ...s,
-          lock: { ...s.lock, [key]: true, [`pixel${key.charAt(0).toUpperCase() + key.slice(1)}`]: currentPixels },
-        }
+        if (!dim || dim <= 0) return s // don't engage on invalid input
+        const currentPixels = metersToPixels(dim, s.dpi)
+        return { ...s, lock: { ...s.lock, [key]: true, [pixelKey]: currentPixels } }
       } else {
-        // Releasing lock
-        return {
-          ...s,
-          lock: { ...s.lock, [key]: false, [`pixel${key.charAt(0).toUpperCase() + key.slice(1)}`]: null },
-        }
+        // Releasing lock — clear snapshot
+        return { ...s, lock: { ...s.lock, [key]: false, [pixelKey]: null } }
       }
     })
   }

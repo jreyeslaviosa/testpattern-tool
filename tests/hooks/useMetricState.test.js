@@ -39,6 +39,19 @@ describe('useMetricState', () => {
     expect(result.current.state.lock.width).toBe(false)
   })
 
+  it('releasing lock resumes live recalculation', () => {
+    const { result } = renderHook(() => useMetricState(null))
+    act(() => result.current.toggleLock('width'))
+    act(() => result.current.toggleLock('width')) // release
+    expect(result.current.state.lock.width).toBe(false)
+    expect(result.current.state.lock.pixelWidth).toBeNull()
+    act(() => result.current.setWall('width', 4.0))
+    expect(result.current.settings.outputWidth).toBe(result.current.settings.outputWidth) // recalculates
+    // After release + change, outputWidth should track new wall width
+    const expected = Math.floor((4.0 / 0.0254) * 96)
+    expect(result.current.settings.outputWidth).toBe(expected)
+  })
+
   it('initializes from preset', () => {
     const preset = {
       mode: 'metric', wall: { width: 5, height: 3 }, dpi: 72,
