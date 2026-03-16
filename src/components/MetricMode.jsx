@@ -7,7 +7,7 @@ import ThemeToggle from './ThemeToggle'
 import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
 
-export default function MetricMode({ onHome, initialPreset, theme, onThemeToggle }) {
+export default function MetricMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
   const { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, applyPreset } = useMetricState(initialPreset)
   const [toast, setToast] = useState(null)
   const fileRef = useRef(null)
@@ -25,8 +25,8 @@ export default function MetricMode({ onHome, initialPreset, theme, onThemeToggle
     if (!file) return
     try {
       const { preset, warningSkipped } = await readPresetFile(file)
-      if (preset.mode !== 'metric') {
-        showToast('This is a pixel preset — switching modes is handled from Home.', true)
+      if (preset.mode === 'pixel') {
+        onNavigate('pixel', preset)
         return
       }
       applyPreset(preset)
