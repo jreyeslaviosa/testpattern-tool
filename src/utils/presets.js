@@ -8,6 +8,8 @@ const PIXEL_DISPLAY_DEFAULTS = {
   patternType: 'grid',
   showCircles: true,
   title: '',
+  circleStroke: 2,
+  lineStroke: 1,
 }
 
 /**

@@ -154,8 +154,16 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
               style={{ width: 55, ...inputStyle('textSize') }} />
             <span className="field-unit">px</span>
           </div>
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Line stroke</span>
+            <input type="number" min="1" value={state.display.lineStroke}
+              onChange={e => setDisplay('lineStroke', Number(e.target.value))}
+              style={{ width: 55, ...inputStyle('lineStroke') }} />
+            <span className="field-unit">px</span>
+          </div>
           {errors.gridSize && <div className="error-text">Grid size must be ≥ 1</div>}
           {errors.textSize && <div className="error-text">Text size must be ≥ 8</div>}
+          {errors.lineStroke && <div className="error-text">Line stroke must be ≥ 1</div>}
 
           {/* Pattern */}
           <div className="section-title">Pattern</div>
@@ -176,6 +184,13 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
                   onChange={e => setDisplay('title', e.target.value)}
                   placeholder="Pattern name…"
                   style={{ flex: 1 }} />
+              </div>
+              <div className="field-row" style={{ marginBottom: 4 }}>
+                <span className="field-label">Circle stroke</span>
+                <input type="number" min="1" value={state.display.circleStroke}
+                  onChange={e => setDisplay('circleStroke', Number(e.target.value))}
+                  style={{ width: 55, ...inputStyle('circleStroke') }} />
+                <span className="field-unit">px</span>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                 <input type="checkbox" checked={state.display.showCircles}
@@ -216,5 +231,7 @@ function validatePixel(state) {
   if (state.grid.blendV < 0 || state.grid.blendV >= state.grid.height) errors.blendV = true
   if (!state.display.gridSize || state.display.gridSize < 1) errors.gridSize = true
   if (!state.display.textSize || state.display.textSize < 8) errors.textSize = true
+  if (!state.display.lineStroke || state.display.lineStroke < 1) errors.lineStroke = true
+  if (!state.display.circleStroke || state.display.circleStroke < 1) errors.circleStroke = true
   return errors
 }

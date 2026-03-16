@@ -8,7 +8,7 @@ import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
 
 export default function MetricMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
-  const { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, applyPreset } = useMetricState(initialPreset)
+  const { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset } = useMetricState(initialPreset)
   const [toast, setToast] = useState(null)
   const fileRef = useRef(null)
 
@@ -77,10 +77,14 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           <div className="section-title">Wall Dimensions</div>
 
           <DimField label="Width" value={state.wall.width} locked={state.lock.width}
+            pixelValue={state.lock.pixelWidth} currentPixels={settings.outputWidth}
             onLock={() => toggleLock('width')} onChange={v => setWall('width', v)}
+            onPixelChange={v => setLockPixels('width', v)}
             error={errors.width} />
           <DimField label="Height" value={state.wall.height} locked={state.lock.height}
+            pixelValue={state.lock.pixelHeight} currentPixels={settings.outputHeight}
             onLock={() => toggleLock('height')} onChange={v => setWall('height', v)}
+            onPixelChange={v => setLockPixels('height', v)}
             error={errors.height} />
 
           <div className="field-row" style={{ marginBottom: 5 }}>
@@ -135,7 +139,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
   )
 }
 
-function DimField({ label, value, locked, onLock, onChange, error }) {
+function DimField({ label, value, locked, pixelValue, currentPixels, onLock, onChange, onPixelChange, error }) {
   return (
     <div style={{ marginBottom: 5 }}>
       <div className="field-row">
@@ -148,6 +152,19 @@ function DimField({ label, value, locked, onLock, onChange, error }) {
           {locked ? '🔒' : '🔓'}
         </button>
       </div>
+      {locked ? (
+        <div className="field-row" style={{ marginTop: 3 }}>
+          <span className="field-label" style={{ fontSize: 10, color: 'var(--text-secondary)' }}>px lock</span>
+          <input type="number" min="1" value={pixelValue || ''}
+            onChange={e => onPixelChange(Number(e.target.value))}
+            style={{ width: 80 }} />
+          <span className="field-unit">px</span>
+        </div>
+      ) : (
+        <div style={{ fontSize: 10, color: 'var(--text-secondary)', paddingLeft: 2, marginTop: 2 }}>
+          {currentPixels} px
+        </div>
+      )}
       {error && <div className="error-text">{error}</div>}
     </div>
   )

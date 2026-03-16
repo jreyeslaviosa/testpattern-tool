@@ -6,7 +6,7 @@ const SMPTE_BARS = [
 
 export function drawPixelPattern(ctx, settings) {
   const { outputWidth: w, outputHeight: h, grid, positions, display, colors } = settings
-  const { colorBars, showBlendZones, gridSize, textSize, patternType } = display
+  const { colorBars, showBlendZones, gridSize, textSize, patternType, lineStroke, circleStroke } = display
   const cellW = grid.width
   const cellH = grid.height
 
@@ -15,11 +15,11 @@ export function drawPixelPattern(ctx, settings) {
   ctx.fillRect(0, 0, w, h)
 
   if (patternType === 'reference') {
-    drawReferenceInner(ctx, w, h, cellW, cellH, grid, positions, display, colors)
+    drawReferenceInner(ctx, w, h, cellW, cellH, grid, positions, display, colors, circleStroke, lineStroke)
 
     // 8. Color bars — centered overlay
     if (colorBars) {
-      const barH = Math.max(40, Math.round(h * 0.1))
+      const barH = Math.round(w / 7)
       const barY = Math.round((h - barH) / 2)
       SMPTE_BARS.forEach((color, i) => {
         ctx.fillStyle = color
@@ -46,11 +46,11 @@ export function drawPixelPattern(ctx, settings) {
     }
   } else {
     // 2. Pattern (full canvas)
-    drawPattern(ctx, w, h, gridSize, patternType, colors)
+    drawPattern(ctx, w, h, gridSize, patternType, colors, lineStroke)
 
     // 3. Color bars — centered overlay
     if (colorBars) {
-      const barH = Math.max(40, Math.round(h * 0.1))
+      const barH = Math.round(w / 7)
       const barY = Math.round((h - barH) / 2)
       SMPTE_BARS.forEach((color, i) => {
         ctx.fillStyle = color
@@ -100,19 +100,19 @@ export function drawPixelPattern(ctx, settings) {
   }
 }
 
-function drawReferenceInner(ctx, w, h, cellW, cellH, grid, positions, display, colors) {
+function drawReferenceInner(ctx, w, h, cellW, cellH, grid, positions, display, colors, circleStroke = 2, lineStroke = 1) {
   const { gridSize, textSize, showCircles, title } = display
   const { cols, rows, blendH, blendV } = grid
 
   // Layer 2: Grid lines
-  drawPattern(ctx, w, h, gridSize, 'grid', colors)
+  drawPattern(ctx, w, h, gridSize, 'grid', colors, lineStroke)
 
   // Layer 3: Inscribed circles
   if (showCircles) {
     const radius = Math.floor(Math.min(cellW, cellH) / 2) - 10
     if (radius > 0) {
       ctx.strokeStyle = colors.pattern
-      ctx.lineWidth = 1
+      ctx.lineWidth = circleStroke
       positions.forEach(({ x, y }) => {
         ctx.beginPath()
         ctx.arc(x + cellW / 2, y + cellH / 2, radius, 0, Math.PI * 2)
@@ -178,7 +178,7 @@ function drawReferenceInner(ctx, w, h, cellW, cellH, grid, positions, display, c
   )
 }
 
-function drawPattern(ctx, w, h, interval, type, colors) {
+function drawPattern(ctx, w, h, interval, type, colors, lineStroke = 1) {
   if (!interval || interval <= 0 || type === 'solid') return
 
   ctx.save()
@@ -190,7 +190,7 @@ function drawPattern(ctx, w, h, interval, type, colors) {
   ctx.fillStyle = colors.pattern
 
   if (type === 'grid') {
-    ctx.lineWidth = 1
+    ctx.lineWidth = lineStroke
     ctx.beginPath()
     for (let x = 0; x <= w; x += interval) { ctx.moveTo(x, 0); ctx.lineTo(x, h) }
     for (let y = 0; y <= h; y += interval) { ctx.moveTo(0, y); ctx.lineTo(w, y) }
@@ -202,7 +202,7 @@ function drawPattern(ctx, w, h, interval, type, colors) {
       }
     }
   } else if (type === 'crosshatch') {
-    ctx.lineWidth = 1
+    ctx.lineWidth = lineStroke
     ctx.beginPath()
     const diag = Math.max(w, h) * 2
     for (let i = -diag; i <= diag; i += interval) {

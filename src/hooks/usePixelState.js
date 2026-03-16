@@ -20,6 +20,8 @@ const DEFAULTS = {
     patternType: 'grid',
     showCircles: true,
     title: '',
+    circleStroke: 2,
+    lineStroke: 1,
   },
   colors: {
     background: '#000000',

@@ -60,9 +60,14 @@ export function useMetricState(initialPreset) {
     })
   }
 
+  function setLockPixels(key, value) {
+    const pixelKey = `pixel${key.charAt(0).toUpperCase() + key.slice(1)}`
+    setState(s => ({ ...s, lock: { ...s.lock, [pixelKey]: value } }))
+  }
+
   function applyPreset(preset) {
     setState({ ...DEFAULTS, ...preset })
   }
 
-  return { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, applyPreset }
+  return { state, settings, setWall, setDpi, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset }
 }
