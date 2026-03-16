@@ -1,5 +1,18 @@
 // src/components/ColorPicker.jsx
+import { useState, useEffect } from 'react'
+
 export default function ColorPicker({ label, value, onChange }) {
+  const [text, setText] = useState(value)
+
+  // Sync text field when value changes externally (e.g. preset load)
+  useEffect(() => { setText(value) }, [value])
+
+  function handleTextChange(e) {
+    const raw = e.target.value
+    setText(raw)
+    if (/^#[0-9a-fA-F]{6}$/.test(raw)) onChange(raw)
+  }
+
   return (
     <div className="field-row" style={{ marginBottom: 5 }}>
       <span className="field-label">{label}</span>
@@ -11,8 +24,9 @@ export default function ColorPicker({ label, value, onChange }) {
       />
       <input
         type="text"
-        value={value}
-        onChange={e => /^#[0-9a-fA-F]{0,6}$/.test(e.target.value) && onChange(e.target.value)}
+        value={text}
+        onChange={handleTextChange}
+        onBlur={() => setText(value)}
         style={{ width: 72, fontFamily: 'monospace', fontSize: 11 }}
       />
     </div>
