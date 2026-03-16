@@ -8,7 +8,7 @@ import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
 
 export default function MetricMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
-  const { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset } = useMetricState(initialPreset)
+  const { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, setField, applyPreset } = useMetricState(initialPreset)
   const [toast, setToast] = useState(null)
   const fileRef = useRef(null)
 
@@ -140,13 +140,35 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           </div>
           {errors.grid && <div className="error-text">{errors.grid}</div>}
 
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Line stroke</span>
+            <input type="number" min="1" value={state.lineStroke || 1}
+              onChange={e => setField('lineStroke', Number(e.target.value))}
+              style={{ width: 55 }} />
+            <span className="field-unit">px</span>
+          </div>
+          {errors.lineStroke && <div className="error-text">{errors.lineStroke}</div>}
+
           <div className="section-title">Pattern</div>
           <select value={state.patternType} onChange={e => setPatternType(e.target.value)}
             style={{ width: '100%', marginBottom: 8, padding: '4px 6px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text-primary)' }}>
-            {['grid','dots','crosshatch','solid','gradient'].map(t => (
+            {['grid','dots','crosshatch','solid','gradient','reference'].map(t => (
               <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
             ))}
           </select>
+
+          {state.patternType === 'reference' && (
+            <>
+              <div className="section-title">Reference</div>
+              <div className="field-row" style={{ marginBottom: 5 }}>
+                <span className="field-label">Title</span>
+                <input type="text" value={state.title || ''}
+                  onChange={e => setField('title', e.target.value)}
+                  placeholder="Pattern name…"
+                  style={{ flex: 1 }} />
+              </div>
+            </>
+          )}
 
           <div className="section-title">Colors</div>
           <ColorPicker label="Background" value={state.colors.background} onChange={v => setColor('background', v)} />
@@ -207,5 +229,6 @@ function validate(state) {
   if (!state.gridSubdivision || state.gridSubdivision <= 0 || state.gridSubdivision > Math.min(state.wall.width, state.wall.height)) {
     errors.grid = 'Must be between 0 and the smaller wall dimension'
   }
+  if (!state.lineStroke || state.lineStroke < 1) errors.lineStroke = 'Must be at least 1'
   return errors
 }

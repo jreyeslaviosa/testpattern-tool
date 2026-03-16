@@ -15,6 +15,8 @@ const DEFAULTS = {
   },
   gridSubdivision: 1.0,
   patternType: 'grid',
+  lineStroke: 1,
+  title: '',
   colors: { background: '#ffffff', pattern: '#374151', text: '#374151', border: '#111111' },
 }
 
@@ -88,9 +90,13 @@ export function useMetricState(initialPreset) {
     setState(s => ({ ...s, lock: { ...s.lock, [pixelKey]: value } }))
   }
 
+  function setField(key, value) {
+    setState(s => ({ ...s, [key]: value }))
+  }
+
   function applyPreset(preset) {
     setState({ ...DEFAULTS, ...preset })
   }
 
-  return { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, applyPreset }
+  return { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, setField, applyPreset }
 }
