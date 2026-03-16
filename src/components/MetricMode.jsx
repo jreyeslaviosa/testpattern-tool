@@ -26,6 +26,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
     try {
       const { preset, warningSkipped } = await readPresetFile(file)
       if (preset.mode === 'pixel') {
+        e.target.value = ''
         onNavigate('pixel', preset)
         return
       }

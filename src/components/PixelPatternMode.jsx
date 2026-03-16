@@ -31,6 +31,7 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
     try {
       const { preset, warningSkipped } = await readPresetFile(file)
       if (preset.mode === 'metric') {
+        e.target.value = ''
         onNavigate('metric', preset)
         return
       }
