@@ -16,6 +16,8 @@ export function metersToPixels(meters, dpi) {
  * totalHeight = rows * height - (rows - 1) * blendV
  *
  * @param {{ rows: number, cols: number, width: number, height: number, blendH: number, blendV: number }} grid
+ *   blendH — horizontal overlap between columns in pixels (must be < width)
+ *   blendV — vertical overlap between rows in pixels (must be < height)
  * @returns {{ totalWidth: number, totalHeight: number }}
  */
 export function calcGridTotal(grid) {
@@ -33,6 +35,8 @@ export function calcGridTotal(grid) {
  * y = row * (height - blendV)
  *
  * @param {{ rows: number, cols: number, width: number, height: number, blendH: number, blendV: number }} grid
+ *   blendH — horizontal overlap between columns in pixels (must be < width)
+ *   blendV — vertical overlap between rows in pixels (must be < height)
  * @returns {Array<{ x: number, y: number, col: number, row: number }>}
  */
 export function calcGridPositions(grid) {

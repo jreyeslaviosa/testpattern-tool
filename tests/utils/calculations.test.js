@@ -3,13 +3,13 @@ import { describe, it, expect } from 'vitest'
 import { metersToPixels, calcGridTotal, calcGridPositions } from '../../src/utils/calculations'
 
 describe('metersToPixels', () => {
-  it('converts 1 meter at 96 DPI to 3779 pixels (rounded)', () => {
+  it('converts 1 meter at 96 DPI to 3779 pixels (floor)', () => {
     expect(metersToPixels(1, 96)).toBe(3779)
   })
   it('converts 8 meters at 96 DPI', () => {
     expect(metersToPixels(8, 96)).toBe(30236)
   })
-  it('rounds to nearest integer', () => {
+  it('truncates to integer (floor)', () => {
     expect(typeof metersToPixels(1.5, 72)).toBe('number')
     expect(Number.isInteger(metersToPixels(1.5, 72))).toBe(true)
   })
