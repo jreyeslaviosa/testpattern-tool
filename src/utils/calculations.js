@@ -10,59 +10,41 @@ export function metersToPixels(meters, dpi) {
 }
 
 /**
- * Calculate total composite canvas size from an array of projectors.
+ * Calculate total composite canvas size from a projector grid.
  *
- * For 'horizontal' layout:
- *   - totalWidth = sum of each projector's width, minus the blend.right of every
- *     projector except the last (the last projector's right edge is the canvas edge).
- *   - totalHeight = max height across all projectors.
+ * totalWidth  = cols * width  - (cols - 1) * blendH
+ * totalHeight = rows * height - (rows - 1) * blendV
  *
- * For 'vertical' layout:
- *   - totalHeight = sum of each projector's height, minus the blend.bottom of every
- *     projector except the last.
- *   - totalWidth = max width across all projectors.
- *
- * @param {Array} projectors
- * @param {'horizontal'|'vertical'} direction
+ * @param {{ rows: number, cols: number, width: number, height: number, blendH: number, blendV: number }} grid
  * @returns {{ totalWidth: number, totalHeight: number }}
  */
-export function calcPixelTotal(projectors, direction) {
-  if (direction === 'horizontal') {
-    const totalWidth = projectors.reduce((sum, p, i) => {
-      return sum + p.width - (i < projectors.length - 1 ? p.blend.right : 0)
-    }, 0)
-    const totalHeight = Math.max(...projectors.map(p => p.height))
-    return { totalWidth, totalHeight }
-  } else {
-    const totalHeight = projectors.reduce((sum, p, i) => {
-      return sum + p.height - (i < projectors.length - 1 ? p.blend.bottom : 0)
-    }, 0)
-    const totalWidth = Math.max(...projectors.map(p => p.width))
-    return { totalWidth, totalHeight }
-  }
+export function calcGridTotal(grid) {
+  const totalWidth  = grid.cols * grid.width  - (grid.cols - 1) * grid.blendH
+  const totalHeight = grid.rows * grid.height - (grid.rows - 1) * grid.blendV
+  return { totalWidth, totalHeight }
 }
 
 /**
- * Calculate the (x, y) origin of each projector in the composite canvas.
+ * Calculate the (x, y) origin of each projector cell in the composite canvas.
  *
- * Each projector starts where the previous one ended, accounting for blend overlap.
- * The cursor advances by (width - blend.right) in horizontal mode, or
- * (height - blend.bottom) in vertical mode.
+ * Returns a flat row-major array of { x, y, col, row } objects (0-indexed).
  *
- * @param {Array} projectors
- * @param {'horizontal'|'vertical'} direction
- * @returns {Array<{ x: number, y: number }>}
+ * x = col * (width  - blendH)
+ * y = row * (height - blendV)
+ *
+ * @param {{ rows: number, cols: number, width: number, height: number, blendH: number, blendV: number }} grid
+ * @returns {Array<{ x: number, y: number, col: number, row: number }>}
  */
-export function calcProjectorPositions(projectors, direction) {
+export function calcGridPositions(grid) {
   const positions = []
-  let cursor = 0
-  for (let i = 0; i < projectors.length; i++) {
-    if (direction === 'horizontal') {
-      positions.push({ x: cursor, y: 0 })
-      cursor += projectors[i].width - projectors[i].blend.right
-    } else {
-      positions.push({ x: 0, y: cursor })
-      cursor += projectors[i].height - projectors[i].blend.bottom
+  for (let row = 0; row < grid.rows; row++) {
+    for (let col = 0; col < grid.cols; col++) {
+      positions.push({
+        x: col * (grid.width  - grid.blendH),
+        y: row * (grid.height - grid.blendV),
+        col,
+        row,
+      })
     }
   }
   return positions
