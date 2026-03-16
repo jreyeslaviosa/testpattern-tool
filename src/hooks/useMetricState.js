@@ -86,8 +86,12 @@ export function useMetricState(initialPreset) {
   }
 
   function setLockPixels(key, value) {
-    const pixelKey = `pixel${key.charAt(0).toUpperCase() + key.slice(1)}`
-    setState(s => ({ ...s, lock: { ...s.lock, [pixelKey]: value } }))
+    setState(s => {
+      const ar = s.wall.height > 0 ? s.wall.width / s.wall.height : 1
+      const pixelWidth = key === 'width' ? value : Math.round(value * ar)
+      const pixelHeight = key === 'height' ? value : Math.round(value / ar)
+      return { ...s, lock: { ...s.lock, pixelWidth, pixelHeight } }
+    })
   }
 
   function setField(key, value) {
