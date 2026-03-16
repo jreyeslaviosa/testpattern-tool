@@ -12,12 +12,17 @@ import { drawPixelPattern } from './draw/drawPixelPattern'
  * @param {object} settings  - Full state for the active mode (metric or pixel).
  *   Required keys: mode ('metric'|'pixel'), outputWidth (px), outputHeight (px), colors.
  * @param {string} [filename] - Download filename, defaults to 'pattern.png'.
+ * @param {number} [scale=1]  - Export scale multiplier (e.g. 2 for 2x resolution).
  * @returns {Promise<void>}
  */
-export async function exportPng(settings, filename = 'pattern.png') {
+export async function exportPng(settings, filename = 'pattern.png', scale = 1) {
   const { outputWidth, outputHeight } = settings
-  const offscreen = new OffscreenCanvas(outputWidth, outputHeight)
+  const w = Math.round(outputWidth * scale)
+  const h = Math.round(outputHeight * scale)
+  const offscreen = new OffscreenCanvas(w, h)
   const ctx = offscreen.getContext('2d')
+
+  if (scale !== 1) ctx.scale(scale, scale)
 
   if (settings.mode === 'metric') {
     drawMetric(ctx, settings)

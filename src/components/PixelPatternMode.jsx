@@ -10,6 +10,7 @@ import { exportPng } from '../utils/exportPng'
 export default function PixelPatternMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
   const { state, settings, setGrid, setDisplay, setColor, applyPreset } = usePixelState(initialPreset)
   const [toast, setToast] = useState(null)
+  const [exportScale, setExportScale] = useState(1)
   const fileRef = useRef(null)
 
   const errors = validatePixel(state)
@@ -44,7 +45,7 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
 
   async function handleExportPng() {
     if (hasErrors) return
-    await exportPng(settings, `pattern-${settings.outputWidth}x${settings.outputHeight}.png`)
+    await exportPng(settings, `pattern-${settings.outputWidth}x${settings.outputHeight}.png`, exportScale)
   }
 
   const inputStyle = (errKey) => ({
@@ -67,6 +68,13 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
           <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
           <button onClick={() => fileRef.current.click()}>Import JSON</button>
           <button onClick={handleExport}>Export JSON</button>
+          <select value={exportScale} onChange={e => setExportScale(Number(e.target.value))}
+            style={{ padding: '3px 4px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text-primary)', fontSize: 11 }}>
+            <option value={0.5}>0.5×</option>
+            <option value={1}>1×</option>
+            <option value={2}>2×</option>
+            <option value={4}>4×</option>
+          </select>
           <button className="btn-primary" onClick={handleExportPng} disabled={hasErrors}>Export PNG</button>
         </div>
       </header>
