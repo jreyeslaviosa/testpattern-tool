@@ -6,6 +6,7 @@ import ColorPicker from './ColorPicker'
 import ThemeToggle from './ThemeToggle'
 import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
+import PresetManager from './PresetManager'
 
 export default function PixelPatternMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
   const { state, settings, setGrid, setDisplay, setColor, applyPreset } = usePixelState(initialPreset)
@@ -85,6 +86,7 @@ export default function PixelPatternMode({ onHome, onNavigate, initialPreset, th
           width: 240, background: 'var(--bg-panel)', borderRight: '1px solid var(--border)',
           padding: 12, overflowY: 'auto', flexShrink: 0,
         }}>
+          <PresetManager state={state} onLoad={applyPreset} mode="pixel" />
           {/* Grid */}
           <div className="section-title">Grid</div>
           <div className="field-row" style={{ marginBottom: 4 }}>

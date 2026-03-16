@@ -6,6 +6,7 @@ import ColorPicker from './ColorPicker'
 import ThemeToggle from './ThemeToggle'
 import { downloadPreset, readPresetFile } from '../utils/presets'
 import { exportPng } from '../utils/exportPng'
+import PresetManager from './PresetManager'
 
 export default function MetricMode({ onHome, onNavigate, initialPreset, theme, onThemeToggle }) {
   const { state, settings, setWall, setResolution, setGridSubdivision, setPatternType, setColor, toggleLock, setLockPixels, setField, applyPreset } = useMetricState(initialPreset)
@@ -84,6 +85,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           width: 240, background: 'var(--bg-panel)', borderRight: '1px solid var(--border)',
           padding: 12, overflowY: 'auto', flexShrink: 0
         }}>
+          <PresetManager state={state} onLoad={applyPreset} mode="metric" />
           <div className="section-title">Wall Dimensions</div>
 
           <DimField
