@@ -26,8 +26,23 @@ export function useMetricState(initialPreset) {
   const settings = useMemo(() => {
     const rawW = Math.floor(state.wall.width * state.resolution)
     const rawH = Math.floor(state.wall.height * state.resolution)
-    const outputWidth  = state.lock.width  && state.lock.pixelWidth  ? state.lock.pixelWidth  : rawW
-    const outputHeight = state.lock.height && state.lock.pixelHeight ? state.lock.pixelHeight : rawH
+    const ar = state.wall.height > 0 ? state.wall.width / state.wall.height : 1
+
+    let outputWidth, outputHeight
+    if (state.lock.width && state.lock.pixelWidth && state.lock.height && state.lock.pixelHeight) {
+      outputWidth = state.lock.pixelWidth
+      outputHeight = state.lock.pixelHeight
+    } else if (state.lock.width && state.lock.pixelWidth) {
+      outputWidth = state.lock.pixelWidth
+      outputHeight = Math.round(state.lock.pixelWidth / ar)
+    } else if (state.lock.height && state.lock.pixelHeight) {
+      outputHeight = state.lock.pixelHeight
+      outputWidth = Math.round(state.lock.pixelHeight * ar)
+    } else {
+      outputWidth = rawW
+      outputHeight = rawH
+    }
+
     const gridInterval = Math.floor(state.gridSubdivision * state.resolution)
     return { ...state, outputWidth, outputHeight, gridInterval }
   }, [state])
@@ -86,12 +101,8 @@ export function useMetricState(initialPreset) {
   }
 
   function setLockPixels(key, value) {
-    setState(s => {
-      const ar = s.wall.height > 0 ? s.wall.width / s.wall.height : 1
-      const pixelWidth = key === 'width' ? value : Math.round(value * ar)
-      const pixelHeight = key === 'height' ? value : Math.round(value / ar)
-      return { ...s, lock: { ...s.lock, pixelWidth, pixelHeight } }
-    })
+    const pixelKey = `pixel${key.charAt(0).toUpperCase() + key.slice(1)}`
+    setState(s => ({ ...s, lock: { ...s.lock, [pixelKey]: value } }))
   }
 
   function setField(key, value) {

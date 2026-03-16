@@ -91,7 +91,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           <DimField
             label="Width" value={state.wall.width} locked={state.lock.width}
             pixelValue={state.lock.pixelWidth}
-            computedPixels={Math.floor(state.wall.width * state.resolution)}
+            computedPixels={settings.outputWidth}
             onLock={() => toggleLock('width')} onChange={v => setWall('width', v)}
             onPixelChange={v => setLockPixels('width', v)}
             error={errors.width}
@@ -99,7 +99,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           <DimField
             label="Height" value={state.wall.height} locked={state.lock.height}
             pixelValue={state.lock.pixelHeight}
-            computedPixels={Math.floor(state.wall.height * state.resolution)}
+            computedPixels={settings.outputHeight}
             onLock={() => toggleLock('height')} onChange={v => setWall('height', v)}
             onPixelChange={v => setLockPixels('height', v)}
             error={errors.height}
