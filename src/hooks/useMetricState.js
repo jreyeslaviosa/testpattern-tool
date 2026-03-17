@@ -42,6 +42,11 @@ export function useMetricState(initialPreset) {
           return { ...s, wall: { width: +((value * s.lock.arRatio).toFixed(4)), height: value } }
         }
       }
+      // Changing a meter dimension clears its pixel lock so the canvas reflects the new size
+      const pixelKey = key === 'width' ? 'pixelWidth' : 'pixelHeight'
+      if (s.lock[key]) {
+        return { ...s, wall: { ...s.wall, [key]: value }, lock: { ...s.lock, [key]: false, [pixelKey]: null } }
+      }
       return { ...s, wall: { ...s.wall, [key]: value } }
     })
   }
