@@ -91,7 +91,9 @@ export default function CanvasPreview({ settings }) {
         style={{
           maxWidth: '100%',
           maxHeight: '100%',
-          objectFit: 'contain',
+          aspectRatio: settings.outputWidth && settings.outputHeight
+            ? `${settings.outputWidth} / ${settings.outputHeight}`
+            : undefined,
           boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
           display: 'block',
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
