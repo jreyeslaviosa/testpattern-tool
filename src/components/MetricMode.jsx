@@ -172,6 +172,14 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           </div>
           {errors.lineStroke && <div className="error-text">{errors.lineStroke}</div>}
 
+          <div className="field-row" style={{ marginBottom: 4 }}>
+            <span className="field-label">Font size</span>
+            <input type="number" min="6" value={state.textSize || 14}
+              onChange={e => setField('textSize', Number(e.target.value))}
+              style={{ width: 55 }} />
+            <span className="field-unit">px</span>
+          </div>
+
           <div className="section-title">Pattern</div>
           <select value={state.patternType} onChange={e => setPatternType(e.target.value)}
             style={{ width: '100%', marginBottom: 8, padding: '4px 6px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text-primary)' }}>

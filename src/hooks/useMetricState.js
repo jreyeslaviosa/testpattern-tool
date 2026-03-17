@@ -16,6 +16,7 @@ const DEFAULTS = {
   gridSubdivision: 1.0,
   patternType: 'grid',
   lineStroke: 1,
+  textSize: 14,
   title: '',
   colors: { background: '#ffffff', pattern: '#374151', text: '#374151', border: '#111111' },
 }
