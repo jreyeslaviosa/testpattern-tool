@@ -96,6 +96,11 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
             onPixelChange={v => setLockPixels('width', v)}
             error={errors.width}
           />
+          {state.lock.height && !state.lock.width && state.lock.pixelHeight && state.wall.height > 0 && (
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: -4, marginBottom: 5, paddingLeft: 2 }}>
+              AR match: {Math.round(state.lock.pixelHeight * state.wall.width / state.wall.height)} px wide
+            </div>
+          )}
           <DimField
             label="Height" value={state.wall.height} locked={state.lock.height}
             pixelValue={state.lock.pixelHeight}
@@ -104,6 +109,11 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
             onPixelChange={v => setLockPixels('height', v)}
             error={errors.height}
           />
+          {state.lock.width && !state.lock.height && state.lock.pixelWidth && state.wall.width > 0 && (
+            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: -4, marginBottom: 5, paddingLeft: 2 }}>
+              AR match: {Math.round(state.lock.pixelWidth * state.wall.height / state.wall.width)} px tall
+            </div>
+          )}
 
           {/* Aspect ratio lock */}
           <div style={{ marginBottom: 8 }}>
@@ -124,7 +134,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
 
           {/* Resolution */}
           {(() => {
-            const resLocked = state.lock.width || state.lock.height
+            const resLocked = state.lock.width && state.lock.height
             return (
               <>
                 <div className="field-row" style={{ marginBottom: 5, opacity: resLocked ? 0.4 : 1 }}>
@@ -137,7 +147,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
                 </div>
                 {resLocked && (
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 5, paddingLeft: 2 }}>
-                    Inactive — output set by pixel lock
+                    Inactive — both dimensions locked
                   </div>
                 )}
                 {!resLocked && errors.resolution && <span className="error-text">{errors.resolution}</span>}
