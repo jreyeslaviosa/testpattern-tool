@@ -123,15 +123,27 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
           </div>
 
           {/* Resolution */}
-          <div className="field-row" style={{ marginBottom: 5 }}>
-            <span className="field-label">Resolution</span>
-            <input type="number" min="1" value={state.resolution}
-              onChange={e => setResolution(Number(e.target.value))}
-              style={{ width: 70 }} />
-            <span className="field-unit">px/m</span>
-            <HelpTip text={`Pixels per meter of wall.\n\nTip: divide your projector's pixel width by the wall width.\n\nExamples:\n• 1920px ÷ 8m = 240 px/m\n• 3840px ÷ 8m = 480 px/m\n\nOr lock the pixel width/height directly and ignore this field.`} />
-          </div>
-          {errors.resolution && <span className="error-text">{errors.resolution}</span>}
+          {(() => {
+            const resLocked = state.lock.width || state.lock.height
+            return (
+              <>
+                <div className="field-row" style={{ marginBottom: 5, opacity: resLocked ? 0.4 : 1 }}>
+                  <span className="field-label">Resolution</span>
+                  <input type="number" min="1" value={state.resolution}
+                    onChange={e => setResolution(Number(e.target.value))}
+                    style={{ width: 70 }} disabled={resLocked} />
+                  <span className="field-unit">px/m</span>
+                  <HelpTip text={`Pixels per meter of wall.\n\nTip: divide your projector's pixel width by the wall width.\n\nExamples:\n• 1920px ÷ 8m = 240 px/m\n• 3840px ÷ 8m = 480 px/m\n\nOr lock the pixel width/height directly and ignore this field.`} />
+                </div>
+                {resLocked && (
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 5, paddingLeft: 2 }}>
+                    Inactive — output set by pixel lock
+                  </div>
+                )}
+                {!resLocked && errors.resolution && <span className="error-text">{errors.resolution}</span>}
+              </>
+            )
+          })()}
 
           <div className="info-box">
             → <strong>{settings.outputWidth} × {settings.outputHeight} px</strong>
