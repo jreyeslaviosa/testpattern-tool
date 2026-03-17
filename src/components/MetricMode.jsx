@@ -129,6 +129,7 @@ export default function MetricMode({ onHome, onNavigate, initialPreset, theme, o
               onChange={e => setResolution(Number(e.target.value))}
               style={{ width: 70 }} />
             <span className="field-unit">px/m</span>
+            <HelpTip text={`Pixels per meter of wall.\n\nTip: divide your projector's pixel width by the wall width.\n\nExamples:\n• 1920px ÷ 8m = 240 px/m\n• 3840px ÷ 8m = 480 px/m\n\nOr lock the pixel width/height directly and ignore this field.`} />
           </div>
           {errors.resolution && <span className="error-text">{errors.resolution}</span>}
 
@@ -228,6 +229,17 @@ function DimField({ label, value, locked, pixelValue, computedPixels, onLock, on
       )}
       {error && <div className="error-text">{error}</div>}
     </div>
+  )
+}
+
+function HelpTip({ text }) {
+  return (
+    <span title={text} style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 14, height: 14, borderRadius: '50%',
+      background: 'var(--text-secondary)', color: 'var(--bg-panel)',
+      fontSize: 9, fontWeight: 700, cursor: 'help', flexShrink: 0, lineHeight: 1,
+    }}>?</span>
   )
 }
 

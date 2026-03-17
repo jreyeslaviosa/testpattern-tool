@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 const DEFAULTS = {
   mode: 'metric',
   wall: { width: 8.0, height: 4.5 },
-  resolution: 3780,  // px/m  (~96 DPI)
+  resolution: 200,   // px/m  (e.g. 1920px ÷ 9.6m ≈ 200)
   lock: {
     width: false,
     height: false,
